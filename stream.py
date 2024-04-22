@@ -1,8 +1,7 @@
 import streamlit as st
 import requests as rq
-from datetime import datetime
 
-URL = "http://127.0.0.1:5000"
+URL = "https://aps5-back.onrender.com"
 
 def tela_inicial():
     st.title("Tela inicial")
