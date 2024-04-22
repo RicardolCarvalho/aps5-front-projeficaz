@@ -1,5 +1,6 @@
 import streamlit as st
 import requests as rq
+from datetime import datetime
 
 URL = "http://127.0.0.1:5000"
 
@@ -7,115 +8,105 @@ def tela_inicial():
     st.title("Tela inicial")
 
 def minhas_bikes():
-    r = rq.get(URL)
+    r = rq.get(f'{URL}/bikes')
     status = r.status_code
     if status == 200:
         st.table(r.json())
 
 def meus_usuarios():
-    r = rq.get(URL)
+    r = rq.get(f'{URL}/usuarios')
     status = r.status_code
     if status == 200:
         st.table(r.json())
 
 def meus_emprestimos():
-    r = rq.get(URL)
+    r = rq.get(f'{URL}/emprestimos')
     status = r.status_code
     if status == 200:
         st.table(r.json())
 
 def nova_bike():
-    titulo = st.text_input("Título")
-    autor = st.text_input("Autor")
-    ano_publicacao = st.text_input("Ano de Publicação")
-    genero = st.text_input("Gênero")
+    marca = st.text_input("Marca")
+    modelo = st.text_input("Modelo")
+    cidade = st.text_input("Cidade")
     if st.button('Cadastrar'):
-        r = rq.post(URL, json={'Livro': {"titulo": titulo, "autor": autor, "ano_publicacao": ano_publicacao, "genero": genero}})
+        r = rq.post(f'{URL}/bikes', json={"marca": marca, "modelo": modelo, "cidade": cidade})
         if r.status_code == 201:
-            st.success('Livro cadastrado com sucesso')
+            st.success('Bicicleta cadastrada com sucesso')
 
 def novo_usuario():
     cpf = st.text_input("CPF")
-    email = st.text_input("Email")
+    data = st.text_input("Data de Nascimento")
     nome = st.text_input("Nome")
-
     if st.button('Cadastrar'):
-        r = rq.post(URL, json={'Usuario': {"cpf": cpf, "email": email, "nome": nome}})
+        r = rq.post(f'{URL}/usuarios', json={"cpf": cpf, "data de nascimento": data, "nome": nome})
         if r.status_code == 201:
             st.success('Usuário cadastrado com sucesso')
 
 def novo_emprestimo():
     id_usuario = st.text_input('Id do usuario')
     id_bike = st.text_input('Id da bike')
-    if st.button('Buscar Usuario'):
-        r = rq.get(f'{URL}/usuarios/{id_usuario}')
-        if r.status_code != 200:
-            st.error('Usuário não encontrado')
-    if st.button('Buscar Bike'):
-        q = rq.get(f'{URL}/bikes/{id_bike}')
-        if q.status_code != 200:
-            st.error('Bike não encontrada')
+    d = st.text_input("Data Aluguel")
     if st.button("Cadastrar"):
-        r = rq.post(f'{URL}/emprestimos', json={'Emprestimo': {'id_usuario': id_usuario, 'id_bike': id_bike}})
-        if r.status_code == 201:
-            st.success("Empréstimo cadastrado com sucesso")
+        r = rq.get(f'{URL}/usuarios/{id_usuario}')
+        q = rq.get(f'{URL}/bikes/{id_bike}')
+        if r.status_code != 200 and q.status_code != 200:
+            st.error('Usuário ou bike não encontrados')
+        else:
+            r = rq.post(f'{URL}/emprestimos/usuarios/{id_usuario}/bikes/{id_bike}', json={'id_usuario': id_usuario, 'id_bike': id_bike, 'data_aluguel': d})
+            if r.status_code == 201:
+                st.success("Empréstimo cadastrado com sucesso")
 
 def dados_usuario():
     id = st.text_input('Id do usuario')
     if st.button('Buscar Usuario'):
-        r = rq.get(f'{URL}/{id}')
+        r = rq.get(f'{URL}/usuarios/{id}')
+        st.table(r.json())
         st.session_state['Usuario'] = r.json()
     if 'Usuario' in st.session_state:
         c = st.text_input("cpf")
-        e = st.text_input("data")
         n = st.text_input("nome")
+        d = st.text_input("data")
         if st.button('Atualizar Usuario'):
-            rq.put(f'{URL}/{st.session_state["Usuario"]["id"]}', json={'Usuario': {"cpf": c, "email": e, "nome": n}})
+            r = rq.put(f'{URL}/usuarios/{id}', json={"cpf": c, "data de nascimento": d, "nome": n})
+            if r.status_code == 200:
+                st.success('Usuário atualizado com sucesso')
         if st.button('Apagar Usuario'):
-            rq.delete(f'{URL}/{st.session_state["Usuario"]["id"]}')
+            r = rq.delete(f'{URL}/usuarios/{id}')
+            if r.status_code == 204:
+                st.success('Usuário apagado com sucesso')
 
 def dados_bike():
     id = st.text_input('Id da bike')
     if st.button('Buscar Bike'):
-        r = rq.get(f'{URL}/{id}')
+        r = rq.get(f'{URL}/bikes/{id}')
+        st.table(r.json())
         st.session_state['Bike'] = r.json()
     if 'Bike' in st.session_state:
-        t = st.text_input("titulo")
-        a = st.text_input("autor")
-        ap = st.text_input("ano de publicacao")
-        g = st.text_input("genero")
+        marca = st.text_input("Marca")
+        modelo = st.text_input("Modelo")
+        cidade = st.text_input("Cidade")
         if st.button('Atualizar Bike'):
-            rq.put(f'{URL}/{st.session_state["Bike"]["id"]}', json={'Bike': {"titulo": t, "autor": a, "ano_publicacao": ap, "genero": g}})
+            r = rq.put(f'{URL}/bikes/{id}', json={"marca": marca, "modelo": modelo, "cidade": cidade})
+            if r.status_code == 200:
+                st.success('Bike atualizada com sucesso')
         if st.button('Apagar Bike'):
-            rq.delete(f'{URL}/{st.session_state["Bike"]["id"]}')
+            r = rq.delete(f'{URL}/bikes/{id}')
+            if r.status_code == 204:
+                st.success('Bike apagada com sucesso')
 
-def dados_emprestimo():
+def apaga_emprestimo():
     id = st.text_input('Id do emprestimo')
-    id_usuario = st.text_input('Id do usuario')
-    id_bike = st.text_input('Id da bike')
-    if st.button('Buscar Usuario'):
-        r = rq.get(f'{URL}/usuarios/{id_usuario}')
-        if r.status_code != 200:
-            st.error('Usuário não encontrado')
-    if st.button('Buscar Bike'):
-        q = rq.get(f'{URL}/bikes/{id_bike}')
-        if q.status_code != 200:
-            st.error('Bike não encontrada')
-    if st.button('Buscar Emprestimo'):
-        r = rq.get(f'{URL}/{id}')
-        st.session_state['Emprestimo'] = r.json()
-    if 'Emprestimo' in st.session_state:
-        id_usuario = st.text_input("Id do usuario")
-        id_bike = st.text_input("Id da bike")
-        if st.button('Atualizar Emprestimo'):
-            rq.put(f'{URL}/{st.session_state["Emprestimo"]["id"]}', json={'Emprestimo': {"id_usuario": id_usuario, "id_bike": id_bike}})
-        if st.button('Apagar Emprestimo'):
-            rq.delete(f'{URL}/{st.session_state["Emprestimo"]["id"]}')
+    if st.button('Apagar Emprestimo'):
+        r = rq.delete(f'{URL}/emprestimos/{id}')
+        if r.status_code == 204:
+            st.success('Empréstimo apagado com sucesso')
+    
 
 if __name__ == "__main__":
     tela_inicial()
     st.sidebar.subheader("Menu")
-    opcao = st.sidebar.radio("", ["Minhas Bikes", "Meus Usuários", "Meus Empréstimos", "Nova Bike", "Novo Usuário", "Novo Empréstimo"])
+    opcao = st.sidebar.radio("", ["Minhas Bikes", "Meus Usuários", "Meus Empréstimos", "Nova Bike", "Novo Usuário", "Novo Empréstimo", "Dados Usuário", "Dados Bike", "Apagar Emprestimo"])
     
     if opcao == "Minhas Bikes":
         minhas_bikes()
@@ -129,3 +120,9 @@ if __name__ == "__main__":
         novo_usuario()
     elif opcao == "Novo Empréstimo":
         novo_emprestimo()
+    elif opcao == "Dados Usuário":
+        dados_usuario()
+    elif opcao == "Dados Bike":
+        dados_bike()
+    elif opcao == "Apagar Emprestimo":
+        apaga_emprestimo()
